@@ -55,28 +55,76 @@ function tokenize(value: string): string[] {
 }
 
 /**
- * Busca rápida no catálogo técnico local por texto livre (marca, modelo ou motor).
+ * Extrai um ano de 4 dígitos (1980–2030) presente em uma busca de veículo.
+ */
+export function extractYearFromQuery(query: string): number | null {
+  const match = query.match(/\b(19[89]\d|20[0-3]\d)\b/);
+  if (!match) return null;
+  const year = Number(match[1]);
+  return Number.isFinite(year) ? year : null;
+}
+
+/**
+ * Busca inteligente no catálogo técnico local por texto livre (marca, modelo, versão/aliases ou ano).
  */
 export function lookupVehicleSpecs(query: string, limit = 8): VehicleSpec[] {
   const normalizedQuery = normalizeText(query);
   if (!normalizedQuery) {
     return VEHICLE_SPECS_DB.slice(0, limit);
   }
-  const queryTokens = tokenize(normalizedQuery);
+
+  const queryYear = extractYearFromQuery(normalizedQuery);
+  const allTokens = tokenize(normalizedQuery);
+  const textTokens = allTokens.filter(
+    (t) => !(queryYear !== null && t === String(queryYear))
+  );
 
   const scored = VEHICLE_SPECS_DB.map((spec) => {
-    const haystack = normalizeText(
-      `${spec.brand} ${spec.model} ${spec.engine}`
-    );
+    const brandModelText = normalizeText(`${spec.brand} ${spec.model}`);
+    const engineText = normalizeText(spec.engine);
+    const aliasesText = normalizeText((spec.aliases ?? []).join(' '));
+    const haystack = `${brandModelText} ${engineText} ${aliasesText}`.trim();
+
     let score = 0;
-    if (haystack.includes(normalizedQuery)) {
-      score += 50;
-    }
-    for (const token of queryTokens) {
-      if (haystack.includes(token)) {
-        score += 15;
+    if (textTokens.length > 0) {
+      const cleanPhrase = textTokens.join(' ');
+      if (haystack.includes(cleanPhrase)) {
+        score += 45;
+      }
+
+      let matchedCount = 0;
+      for (const token of textTokens) {
+        if (brandModelText.includes(token)) {
+          score += 22;
+          matchedCount += 1;
+        } else if (engineText.includes(token)) {
+          score += 18;
+          matchedCount += 1;
+        } else if (aliasesText.includes(token)) {
+          score += 16;
+          matchedCount += 1;
+        }
+      }
+
+      if (matchedCount === 0) {
+        return { spec, score: 0 };
+      }
+
+      if (matchedCount === textTokens.length) {
+        score += 25;
       }
     }
+
+    if (queryYear !== null) {
+      if (queryYear >= spec.yearStart && queryYear <= spec.yearEnd) {
+        score += 25;
+      } else if (textTokens.length === 0) {
+        return { spec, score: 0 };
+      } else {
+        score -= 10;
+      }
+    }
+
     return { spec, score };
   })
     .filter((item) => item.score > 0)
@@ -105,7 +153,9 @@ export function findBestSpecMatch(
 
   for (const spec of VEHICLE_SPECS_DB) {
     const specBrand = normalizeText(spec.brand);
-    const specModel = normalizeText(`${spec.model} ${spec.engine}`);
+    const specModel = normalizeText(
+      `${spec.model} ${spec.engine} ${(spec.aliases ?? []).join(' ')}`
+    );
     let score = 0;
 
     if (normBrand && (specBrand.includes(normBrand) || normBrand.includes(specBrand))) {
@@ -132,7 +182,7 @@ export function findBestSpecMatch(
     }
 
     if (year && year >= spec.yearStart && year <= spec.yearEnd) {
-      score += 10;
+      score += 20;
     }
 
     if (score > bestScore) {
@@ -339,9 +389,13 @@ export function crossValidateVehicleRegistration(
       autoFilledFields.push('tankCapacityLiters');
     }
 
-    if (input.gaugeSegments !== matchedSpec.gaugeSegments) {
+    const validSegments = [
+      matchedSpec.gaugeSegments,
+      ...(matchedSpec.altGaugeSegments ?? []),
+    ];
+    if (!validSegments.includes(input.gaugeSegments)) {
       warnings.push(
-        `Marcador informado (${input.gaugeSegments} palitinhos) difere do padrão catalogado (${matchedSpec.gaugeSegments} palitinhos). Verifique no painel.`
+        `Marcador informado (${input.gaugeSegments} palitinhos) difere do padrão catalogado (${validSegments.join(' ou ')} palitinhos). Verifique no painel.`
       );
       confidenceScore -= 15;
       status = 'ADJUSTED_WARNING';

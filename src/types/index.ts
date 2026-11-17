@@ -22,6 +22,8 @@ export interface VehicleSpec {
   inmetroHighwayGasolineKmL: number;
   inmetroCityEthanolKmL: number;
   inmetroHighwayEthanolKmL: number;
+  aliases?: string[];
+  altGaugeSegments?: number[];
   gaugeNotes?: string;
 }
 

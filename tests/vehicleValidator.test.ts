@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   clearFipeCacheForTests,
   crossValidateVehicleRegistration,
+  extractYearFromQuery,
   findBestSpecMatch,
   lookupVehicleSpecs,
   verifyVehicleInFipe,
@@ -119,5 +120,41 @@ describe('vehicleValidator (Validação Cruzada no Cadastro)', () => {
 
     const offline = await verifyVehicleInFipe('Volkswagen', 'Polo', failingFetch);
     expect(offline.verified).toBe(false);
+  });
+
+  it('encontra e valida carros populares brasileiros clássicos incluindo Palio ELX 2010 1.0', () => {
+    expect(extractYearFromQuery('palio elx 2010 1.0')).toBe(2010);
+
+    const palio = lookupVehicleSpecs('palio elx 2010 1.0');
+    expect(palio.length).toBeGreaterThan(0);
+    expect(palio[0].id).toBe('fiat-palio-10-elx-fire');
+    expect(palio[0].tankCapacityLiters).toBe(48);
+
+    const palioValidation = crossValidateVehicleRegistration({
+      brand: 'Fiat',
+      model: 'Palio ELX 1.0',
+      year: 2010,
+      tankCapacityLiters: 48,
+      gaugeSegments: 8,
+    });
+    expect(palioValidation.isValid).toBe(true);
+    expect(palioValidation.status).toBe('VERIFIED');
+    expect(palioValidation.matchedSpec?.id).toBe('fiat-palio-10-elx-fire');
+
+    // Também aceita subdivisão alternativa (ex: 4 quartos ou 16 barras) sem penalidade
+    const palioAltGauge = crossValidateVehicleRegistration({
+      brand: 'Fiat',
+      model: 'Palio ELX 1.0',
+      year: 2010,
+      tankCapacityLiters: 48,
+      gaugeSegments: 16,
+    });
+    expect(palioAltGauge.status).toBe('VERIFIED');
+
+    expect(lookupVehicleSpecs('celta 1.0')[0].brand).toBe('Chevrolet');
+    expect(lookupVehicleSpecs('gol g5')[0].id).toBe('vw-gol-g5-g8');
+    expect(lookupVehicleSpecs('uno mille')[0].id).toBe('fiat-uno-mille-fire');
+    expect(lookupVehicleSpecs('corsa classic')[0].id).toBe('chevrolet-corsa-classic-wind');
+    expect(lookupVehicleSpecs('new civic')[0].id).toBe('honda-civic-g8-g9');
   });
 });

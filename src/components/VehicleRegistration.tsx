@@ -3,6 +3,7 @@ import { Vehicle, VehicleSpec } from '../types';
 import {
   buildVehicleFromInput,
   crossValidateVehicleRegistration,
+  extractYearFromQuery,
   lookupVehicleSpecs,
   verifyVehicleInFipe,
 } from '../services/vehicleValidator';
@@ -49,7 +50,7 @@ export const VehicleRegistration: React.FC<VehicleRegistrationProps> = ({
   const [formError, setFormError] = useState<string | null>(null);
 
   const specSuggestions = useMemo(
-    () => lookupVehicleSpecs(searchQuery, 6),
+    () => lookupVehicleSpecs(searchQuery, 10),
     [searchQuery]
   );
 
@@ -72,10 +73,16 @@ export const VehicleRegistration: React.FC<VehicleRegistrationProps> = ({
   };
 
   const applySpec = async (spec: VehicleSpec) => {
+    const queriedYear = extractYearFromQuery(searchQuery);
+    const resolvedYear =
+      queriedYear && queriedYear >= spec.yearStart && queriedYear <= spec.yearEnd
+        ? queriedYear
+        : Math.min(2025, spec.yearEnd);
+
     setSelectedSpec(spec);
     setBrand(spec.brand);
     setModel(spec.model);
-    setYear(Math.min(2025, spec.yearEnd));
+    setYear(resolvedYear);
     setNickname(`${spec.brand} ${spec.model}`);
     setTankCapacityLiters(spec.tankCapacityLiters);
     setGaugeSegments(spec.gaugeSegments);
@@ -296,7 +303,7 @@ export const VehicleRegistration: React.FC<VehicleRegistrationProps> = ({
               <input
                 id="spec-search"
                 type="text"
-                placeholder="Ex: Polo, Onix, HB20, Argo, Corolla..."
+                placeholder="Ex: Palio ELX 2010 1.0, Gol G5, Onix, HB20, Civic..."
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
@@ -317,7 +324,8 @@ export const VehicleRegistration: React.FC<VehicleRegistrationProps> = ({
                       {spec.brand} {spec.model}
                     </strong>
                     <span className="tabular">
-                      {spec.tankCapacityLiters} L · {spec.gaugeSegments} palitinhos
+                      {spec.yearStart}–{spec.yearEnd} · {spec.tankCapacityLiters} L ·{' '}
+                      {spec.gaugeSegments} pal.
                     </span>
                   </button>
                 ))}
