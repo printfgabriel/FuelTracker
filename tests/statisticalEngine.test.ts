@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  DEFAULT_TIME_WINDOW,
   calculateMonthlySpending,
   compareGasolineVsEthanol,
   evaluateFuelConsumptionStats,
+  filterDataByTimeWindow,
   normalCdf,
   studentTOneTailedPValue,
 } from '../src/services/statisticalEngine';
@@ -258,5 +260,70 @@ describe('statisticalEngine (Estatística, Mini-Alertas e Comparativo)', () => {
     expect(monthly[0].ethanolCost).toBe(120);
     expect(monthly[1].monthKey).toBe('2026-10');
     expect(monthly[1].totalCost).toBe(186);
+  });
+
+  it('filtra análises por janela temporal (6M padrão, 1Y e Global)', () => {
+    expect(DEFAULT_TIME_WINDOW).toBe('6M');
+
+    const refDate = new Date('2026-11-17T12:00:00Z');
+    const intervals: ConsumptionInterval[] = [
+      { ...makeInterval(1, 'GASOLINE', 10.0), toDate: '2023-10-10T10:00' }, // 3 anos atrás
+      { ...makeInterval(2, 'GASOLINE', 11.0), toDate: '2025-12-15T10:00' }, // ~11 meses atrás
+      { ...makeInterval(3, 'GASOLINE', 12.6), toDate: '2026-08-10T10:00' }, // ~3 meses atrás
+      { ...makeInterval(4, 'GASOLINE', 12.8), toDate: '2026-11-05T10:00' }, // recente
+    ];
+    const entries: RefuelEntry[] = [
+      {
+        id: 'old',
+        vehicleId: TEST_VEHICLE.id,
+        date: '2023-10-10T10:00',
+        odometerKm: 1000,
+        fuelType: 'GASOLINE',
+        pricePerLiter: 5.5,
+        totalCost: 110,
+        liters: 20,
+        barsBefore: 2,
+      },
+      {
+        id: 'mid',
+        vehicleId: TEST_VEHICLE.id,
+        date: '2025-12-15T10:00',
+        odometerKm: 5000,
+        fuelType: 'GASOLINE',
+        pricePerLiter: 5.8,
+        totalCost: 116,
+        liters: 20,
+        barsBefore: 2,
+      },
+      {
+        id: 'recent',
+        vehicleId: TEST_VEHICLE.id,
+        date: '2026-08-10T10:00',
+        odometerKm: 9000,
+        fuelType: 'GASOLINE',
+        pricePerLiter: 6.1,
+        totalCost: 122,
+        liters: 20,
+        barsBefore: 2,
+      },
+    ];
+
+    const only6M = filterDataByTimeWindow(intervals, entries, '6M', refDate);
+    expect(only6M.intervals).toHaveLength(2);
+    expect(only6M.entries).toHaveLength(1);
+    const stats6M = evaluateFuelConsumptionStats(
+      only6M.intervals,
+      'GASOLINE',
+      TEST_VEHICLE
+    );
+    expect(stats6M.weightedKmPerLiter).toBeCloseTo(12.7, 1);
+
+    const only1Y = filterDataByTimeWindow(intervals, entries, '1Y', refDate);
+    expect(only1Y.intervals).toHaveLength(3);
+    expect(only1Y.entries).toHaveLength(2);
+
+    const all = filterDataByTimeWindow(intervals, entries, 'ALL', refDate);
+    expect(all.intervals).toHaveLength(4);
+    expect(all.entries).toHaveLength(3);
   });
 });

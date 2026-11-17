@@ -200,4 +200,5 @@ export interface AppState {
   googleClientId?: string;
   lastGoogleSyncAt?: string;
   palette?: ColorPaletteId;
+  dismissedAlertIds?: string[];
 }

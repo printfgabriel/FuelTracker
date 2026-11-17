@@ -329,6 +329,27 @@ export const RefuelForm: React.FC<RefuelFormProps> = ({
             </span>
           </div>
 
+          <div className="gauge-shortcuts" role="group" aria-label="Atalhos de nível do tanque">
+            {[
+              { label: 'Reserva', value: Math.max(1, Math.round(vehicle.gaugeSegments * 0.12)) },
+              { label: '1/4', value: Math.round(vehicle.gaugeSegments * 0.25) },
+              { label: '1/2', value: Math.round(vehicle.gaugeSegments * 0.5) },
+              { label: '3/4', value: Math.round(vehicle.gaugeSegments * 0.75) },
+              { label: 'Cheio', value: vehicle.gaugeSegments },
+            ].map((preset) => (
+              <button
+                key={preset.label}
+                type="button"
+                className={`gauge-shortcut-btn ${
+                  barsBefore === preset.value ? 'active' : ''
+                }`}
+                onClick={() => setBarsBefore(preset.value)}
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+
           <div className="gauge-instrument-row">
             <button
               type="button"

@@ -31,6 +31,7 @@ export const VehicleRegistration: React.FC<VehicleRegistrationProps> = ({
   onDeleteVehicle,
 }) => {
   const [showAddSheet, setShowAddSheet] = useState(false);
+  const [showManualSpecs, setShowManualSpecs] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSpec, setSelectedSpec] = useState<VehicleSpec | null>(null);
   const [nickname, setNickname] = useState('');
@@ -55,6 +56,7 @@ export const VehicleRegistration: React.FC<VehicleRegistrationProps> = ({
   );
 
   const resetForm = () => {
+    setShowManualSpecs(false);
     setSearchQuery('');
     setSelectedSpec(null);
     setNickname('');
@@ -80,6 +82,7 @@ export const VehicleRegistration: React.FC<VehicleRegistrationProps> = ({
         : Math.min(2025, spec.yearEnd);
 
     setSelectedSpec(spec);
+    setShowManualSpecs(false);
     setBrand(spec.brand);
     setModel(spec.model);
     setYear(resolvedYear);
@@ -370,93 +373,128 @@ export const VehicleRegistration: React.FC<VehicleRegistrationProps> = ({
               </div>
             </div>
 
-            <div className="grid-3">
-              <div className="field-group">
-                <label htmlFor="veh-tank">Tanque (L)</label>
-                <input
-                  id="veh-tank"
-                  type="number"
-                  step="0.5"
-                  min="20"
-                  max="120"
-                  value={tankCapacityLiters}
-                  onChange={(e) => setTankCapacityLiters(Number(e.target.value))}
-                  className="tabular"
-                  required
-                />
+            {selectedSpec && !showManualSpecs ? (
+              <div className="auto-spec-card">
+                <div className="auto-spec-row">
+                  <div>
+                    <span className="kpi-label">
+                      Especificação oficial aplicada automaticamente
+                    </span>
+                    <strong className="tabular auto-spec-main">
+                      Tanque {tankCapacityLiters} L · Marcador de {gaugeSegments}{' '}
+                      palitinhos
+                    </strong>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn-inline"
+                    onClick={() => setShowManualSpecs(true)}
+                  >
+                    Ajustar manualmente
+                  </button>
+                </div>
+                <div className="field-group">
+                  <label htmlFor="veh-nick">Apelido (opcional)</label>
+                  <input
+                    id="veh-nick"
+                    type="text"
+                    value={nickname}
+                    onChange={(e) => setNickname(e.target.value)}
+                    placeholder="Meu Carro"
+                  />
+                </div>
               </div>
-              <div className="field-group">
-                <label htmlFor="veh-bars">Palitinhos</label>
-                <input
-                  id="veh-bars"
-                  type="number"
-                  min="4"
-                  max="24"
-                  step="1"
-                  value={gaugeSegments}
-                  onChange={(e) => setGaugeSegments(Number(e.target.value))}
-                  className="tabular"
-                  required
-                />
-              </div>
-              <div className="field-group">
-                <label htmlFor="veh-nick">Apelido</label>
-                <input
-                  id="veh-nick"
-                  type="text"
-                  value={nickname}
-                  onChange={(e) => setNickname(e.target.value)}
-                  placeholder="Meu Carro"
-                />
-              </div>
-            </div>
+            ) : (
+              <>
+                <div className="grid-3">
+                  <div className="field-group">
+                    <label htmlFor="veh-tank">Tanque (L)</label>
+                    <input
+                      id="veh-tank"
+                      type="number"
+                      step="0.5"
+                      min="20"
+                      max="120"
+                      value={tankCapacityLiters}
+                      onChange={(e) => setTankCapacityLiters(Number(e.target.value))}
+                      className="tabular"
+                      required
+                    />
+                  </div>
+                  <div className="field-group">
+                    <label htmlFor="veh-bars">Palitinhos</label>
+                    <input
+                      id="veh-bars"
+                      type="number"
+                      min="4"
+                      max="24"
+                      step="1"
+                      value={gaugeSegments}
+                      onChange={(e) => setGaugeSegments(Number(e.target.value))}
+                      className="tabular"
+                      required
+                    />
+                  </div>
+                  <div className="field-group">
+                    <label htmlFor="veh-nick">Apelido</label>
+                    <input
+                      id="veh-nick"
+                      type="text"
+                      value={nickname}
+                      onChange={(e) => setNickname(e.target.value)}
+                      placeholder="Meu Carro"
+                    />
+                  </div>
+                </div>
 
-            <div className="grid-2">
-              <div className="field-group">
-                <label htmlFor="inmetro-gas">INMETRO Gasolina (Cid / Est)</label>
-                <div className="inline-pair">
-                  <input
-                    id="inmetro-gas"
-                    type="number"
-                    step="0.1"
-                    placeholder="Cidade"
-                    value={inmetroCityGas}
-                    onChange={(e) => setInmetroCityGas(e.target.value)}
-                    className="tabular"
-                  />
-                  <input
-                    type="number"
-                    step="0.1"
-                    placeholder="Estrada"
-                    value={inmetroHighwayGas}
-                    onChange={(e) => setInmetroHighwayGas(e.target.value)}
-                    className="tabular"
-                  />
+                <div className="grid-2">
+                  <div className="field-group">
+                    <label htmlFor="inmetro-gas">INMETRO Gasolina (Cid / Est)</label>
+                    <div className="inline-pair">
+                      <input
+                        id="inmetro-gas"
+                        type="number"
+                        step="0.1"
+                        placeholder="Cidade"
+                        value={inmetroCityGas}
+                        onChange={(e) => setInmetroCityGas(e.target.value)}
+                        className="tabular"
+                      />
+                      <input
+                        type="number"
+                        step="0.1"
+                        placeholder="Estrada"
+                        value={inmetroHighwayGas}
+                        onChange={(e) => setInmetroHighwayGas(e.target.value)}
+                        className="tabular"
+                      />
+                    </div>
+                  </div>
+                  <div className="field-group">
+                    <label htmlFor="inmetro-eth">INMETRO Álcool (Cid / Est)</label>
+                    <div className="inline-pair">
+                      <input
+                        id="inmetro-eth"
+                        type="number"
+                        step="0.1"
+                        placeholder="Cidade"
+                        value={inmetroCityEth}
+                        onChange={(e) => setInmetroCityEth(e.target.value)}
+                        className="tabular"
+                      />
+                      <input
+                        type="number"
+                        step="0.1"
+                        placeholder="Estrada"
+                        value={inmetroHighwayEth}
+                        onChange={(e) => setInmetroHighwayEth(e.target.value)}
+                        className="tabular"
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div className="field-group">
-                <label htmlFor="inmetro-eth">INMETRO Álcool (Cid / Est)</label>
-                <div className="inline-pair">
-                  <input
-                    id="inmetro-eth"
-                    type="number"
-                    step="0.1"
-                    placeholder="Cidade"
-                    value={inmetroCityEth}
-                    onChange={(e) => setInmetroCityEth(e.target.value)}
-                    className="tabular"
-                  />
-                  <input
-                    type="number"
-                    step="0.1"
-                    placeholder="Estrada"
-                    value={inmetroHighwayEth}
-                    onChange={(e) => setInmetroHighwayEth(e.target.value)}
-                    className="tabular"
-                  />
-                </div>
-              </div>
-            </div>
+              </>
+            )}
 
             {(brand || model) && (
               <div

@@ -58,72 +58,71 @@ export const HistoryList: React.FC<HistoryListProps> = ({
         <div className="history-list">
           {orderedDesc.map((entry) => {
             const interval = intervalByToEntry.get(entry.id);
+            const fuelShort = FUEL_LABELS[entry.fuelType].split(' ')[0];
+            const intervalFuelShort = interval
+              ? FUEL_LABELS[interval.fuelType].split(' ')[0]
+              : fuelShort;
+
             return (
-              <div key={entry.id} className="history-item">
-                <div className="history-top">
+              <div key={entry.id} className="history-item history-row">
+                <div className="history-col-left">
                   <div className="inline-icon-row">
                     <span
                       className={`badge ${
                         entry.fuelType === 'GASOLINE' ? 'badge-gas' : 'badge-eth'
                       }`}
                     >
-                      {FUEL_LABELS[entry.fuelType]}
+                      {fuelShort}
                     </span>
-                    <strong className="tabular">
-                      {entry.odometerKm.toLocaleString('pt-BR')} km
-                    </strong>
-                  </div>
-                  <span className="muted-sm tabular">
-                    {new Date(entry.date).toLocaleDateString('pt-BR')}
-                  </span>
-                </div>
-
-                <div className="history-mid tabular">
-                  <span>
-                    {entry.liters.toFixed(2)} L × R$ {entry.pricePerLiter.toFixed(2)} ={' '}
-                    <strong>R$ {entry.totalCost.toFixed(2)}</strong>
-                  </span>
-                  <span className="muted-sm">
-                    {entry.barsBefore}/{vehicle.gaugeSegments} palitinhos
-                    {entry.fullTank ? ' · Tanque cheio' : ''}
-                  </span>
-                </div>
-
-                {interval && (
-                  <div className="history-interval">
-                    {interval.isValid ? (
-                      <>
-                        <span className="tabular">
-                          Trecho ({FUEL_LABELS[interval.fuelType].split(' ')[0]}):{' '}
-                          <strong>{interval.kmPerLiter.toFixed(2)} km/L</strong>{' '}
-                          <span className="muted-sm">
-                            ({interval.kmPerLiterMin.toFixed(1)}–
-                            {interval.kmPerLiterMax.toFixed(1)} · {interval.distanceKm} km /{' '}
-                            {interval.fuelConsumedLiters.toFixed(1)} L)
-                          </span>
-                        </span>
-                        {interval.isMixedTank && (
-                          <span className="badge badge-warn tabular">
-                            Misto ({Math.round(interval.residualOtherFuelRatio * 100)}%)
-                          </span>
-                        )}
-                      </>
-                    ) : (
-                      <span className="warn-inline">{interval.invalidReason}</span>
+                    <span className="muted-sm tabular">
+                      {new Date(entry.date).toLocaleDateString('pt-BR')}
+                    </span>
+                    {interval?.isMixedTank && (
+                      <span className="badge badge-warn">Misto</span>
                     )}
                   </div>
-                )}
+                  <div className="history-amount tabular">
+                    <strong>R$ {entry.totalCost.toFixed(2)}</strong>
+                    <span className="muted-sm"> · {entry.liters.toFixed(1)} L</span>
+                  </div>
+                </div>
 
-                <div className="history-actions">
-                  <span className="muted-sm">{entry.station || ''}</span>
+                <div className="history-col-right">
+                  {interval ? (
+                    interval.isValid ? (
+                      <div className="history-kpi">
+                        <strong className="history-kml tabular">
+                          {interval.kmPerLiter.toFixed(1)} km/L
+                        </strong>
+                        <span className="muted-sm tabular">
+                          +{interval.distanceKm.toFixed(0)} km
+                          {interval.fuelType !== entry.fuelType
+                            ? ` (${intervalFuelShort})`
+                            : ''}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="history-kpi">
+                        <span className="warn-inline">Trecho inválido</span>
+                      </div>
+                    )
+                  ) : (
+                    <div className="history-kpi">
+                      <strong className="history-odo tabular">
+                        {entry.odometerKm.toLocaleString('pt-BR')} km
+                      </strong>
+                      <span className="muted-sm">Início</span>
+                    </div>
+                  )}
+
                   <button
                     type="button"
-                    className="btn-ghost-danger inline-icon-row"
+                    className="icon-delete-btn"
                     onClick={() => onDeleteEntry(entry.id)}
                     aria-label="Excluir abastecimento"
+                    title="Excluir abastecimento"
                   >
-                    <TrashIcon size={14} />
-                    <span>Excluir</span>
+                    <TrashIcon size={15} />
                   </button>
                 </div>
               </div>

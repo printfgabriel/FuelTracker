@@ -1241,3 +1241,164 @@ input:focus {
   border-top: 1px solid var(--border);
   margin: 2px 0;
 }
+
+/* Histórico simplificado em 2 colunas */
+.history-row {
+  flex-direction: row !important;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.history-col-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.history-amount {
+  font-size: 0.9rem;
+  color: var(--text-strong);
+}
+
+.history-col-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.history-kpi {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.history-kml {
+  font-size: 1rem;
+  color: var(--text-strong);
+}
+
+.history-odo {
+  font-size: 0.88rem;
+  color: var(--text-strong);
+}
+
+.icon-delete-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.icon-delete-btn:hover {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+/* Seletor de janela temporal nas Análises */
+.window-bar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 3px;
+  gap: 3px;
+}
+
+.window-pill {
+  min-height: 36px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.window-pill.active {
+  background: var(--primary);
+  color: var(--primary-fg);
+}
+
+/* Resumo automático do painel no cadastro de carro */
+.auto-spec-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 11px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.auto-spec-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.auto-spec-main {
+  display: block;
+  font-size: 0.9rem;
+  color: var(--text-strong);
+  margin-top: 2px;
+}
+
+/* Atalhos de fração no medidor de palitinhos */
+.gauge-shortcuts {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+}
+
+.gauge-shortcut-btn {
+  min-height: 28px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+.gauge-shortcut-btn.active {
+  background: var(--primary);
+  color: var(--primary-fg);
+  border-color: var(--primary);
+}
+
+.app-logo-img {
+  display: block;
+  border-radius: 9px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.alert-dismiss-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-strong);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}

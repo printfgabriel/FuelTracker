@@ -122,35 +122,37 @@ describe('vehicleValidator (Validação Cruzada no Cadastro)', () => {
     expect(offline.verified).toBe(false);
   });
 
-  it('encontra e valida carros populares brasileiros clássicos incluindo Palio ELX 2010 1.0', () => {
+  it('encontra e valida carros populares brasileiros clássicos incluindo Palio ELX 2010 1.0 com 16 palitinhos', () => {
     expect(extractYearFromQuery('palio elx 2010 1.0')).toBe(2010);
 
     const palio = lookupVehicleSpecs('palio elx 2010 1.0');
     expect(palio.length).toBeGreaterThan(0);
-    expect(palio[0].id).toBe('fiat-palio-10-elx-fire');
+    expect(palio[0].id).toBe('fiat-palio-10-elx');
     expect(palio[0].tankCapacityLiters).toBe(48);
+    expect(palio[0].gaugeSegments).toBe(16);
 
     const palioValidation = crossValidateVehicleRegistration({
       brand: 'Fiat',
       model: 'Palio ELX 1.0',
       year: 2010,
       tankCapacityLiters: 48,
-      gaugeSegments: 8,
+      gaugeSegments: 16,
     });
     expect(palioValidation.isValid).toBe(true);
     expect(palioValidation.status).toBe('VERIFIED');
-    expect(palioValidation.matchedSpec?.id).toBe('fiat-palio-10-elx-fire');
+    expect(palioValidation.matchedSpec?.id).toBe('fiat-palio-10-elx');
 
-    // Também aceita subdivisão alternativa (ex: 4 quartos ou 16 barras) sem penalidade
+    // Também aceita subdivisão analógica alternativa (ex: 8 divisões) sem penalidade
     const palioAltGauge = crossValidateVehicleRegistration({
       brand: 'Fiat',
       model: 'Palio ELX 1.0',
       year: 2010,
       tankCapacityLiters: 48,
-      gaugeSegments: 16,
+      gaugeSegments: 8,
     });
     expect(palioAltGauge.status).toBe('VERIFIED');
 
+    expect(lookupVehicleSpecs('palio fire 1.0')[0].id).toBe('fiat-palio-10-fire');
     expect(lookupVehicleSpecs('celta 1.0')[0].brand).toBe('Chevrolet');
     expect(lookupVehicleSpecs('gol g5')[0].id).toBe('vw-gol-g5-g8');
     expect(lookupVehicleSpecs('uno mille')[0].id).toBe('fiat-uno-mille-fire');

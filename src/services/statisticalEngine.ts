@@ -743,3 +743,41 @@ export function calculateMonthlySpending(
     a.monthKey.localeCompare(b.monthKey)
   );
 }
+
+export type TimeWindow = '6M' | '1Y' | 'ALL';
+
+export const DEFAULT_TIME_WINDOW: TimeWindow = '6M';
+
+export const TIME_WINDOW_LABELS: Record<TimeWindow, string> = {
+  '6M': '6 meses',
+  '1Y': '1 ano',
+  ALL: 'Global',
+};
+
+/**
+ * Filtra intervalos e abastecimentos pela janela temporal selecionada (6M, 1Y ou Global)
+ * para evitar que registros muito antigos (ex: 3 anos atrás) distorçam a média recente.
+ */
+export function filterDataByTimeWindow(
+  intervals: ConsumptionInterval[],
+  entries: RefuelEntry[],
+  window: TimeWindow,
+  referenceDate: Date = new Date()
+): { intervals: ConsumptionInterval[]; entries: RefuelEntry[] } {
+  if (window === 'ALL') {
+    return { intervals, entries };
+  }
+  const days = window === '6M' ? 183 : 365;
+  const cutoffMs = referenceDate.getTime() - days * 24 * 60 * 60 * 1000;
+
+  return {
+    intervals: intervals.filter((it) => {
+      const ts = new Date(it.toDate).getTime();
+      return Number.isFinite(ts) && ts >= cutoffMs;
+    }),
+    entries: entries.filter((e) => {
+      const ts = new Date(e.date).getTime();
+      return Number.isFinite(ts) && ts >= cutoffMs;
+    }),
+  };
+}

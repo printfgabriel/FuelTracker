@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   AppState,
   ColorPaletteId,
+  ConsumptionAlert,
   FUEL_LABELS,
   FuelType,
   RefuelEntry,
@@ -18,8 +19,12 @@ import {
   sortEntriesChronologically,
 } from './services/fuelCalculator';
 import {
+  DEFAULT_TIME_WINDOW,
+  TIME_WINDOW_LABELS,
+  TimeWindow,
   calculateMonthlySpending,
   compareGasolineVsEthanol,
+  filterDataByTimeWindow,
 } from './services/statisticalEngine';
 import { RefuelForm } from './components/RefuelForm';
 import { AnalyticsDashboard } from './components/AnalyticsDashboard';
@@ -33,7 +38,6 @@ import {
   CheckIcon,
   ChevronRightIcon,
   CloudIcon,
-  FuelPumpIcon,
   HistoryIcon,
   PlusIcon,
 } from './components/Icons';
@@ -55,9 +59,11 @@ const PALETTES: Array<{
 export const App: React.FC = () => {
   const [state, setState] = useState<AppState>(() => loadAppState());
   const [activeTab, setActiveTab] = useState<TabKey>('home');
+  const [timeWindow, setTimeWindow] = useState<TimeWindow>(DEFAULT_TIME_WINDOW);
   const [showRefuelModal, setShowRefuelModal] = useState(false);
   const [showSyncModal, setShowSyncModal] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [sessionAlerts, setSessionAlerts] = useState<ConsumptionAlert[]>([]);
 
   const activePalette: ColorPaletteId = state.palette ?? 'terracotta';
 
@@ -115,7 +121,22 @@ export const App: React.FC = () => {
     return calculateConsumptionIntervals(state.entries, activeVehicle);
   }, [state.entries, activeVehicle]);
 
+  const windowedData = useMemo(
+    () => filterDataByTimeWindow(intervals, state.entries, timeWindow),
+    [intervals, state.entries, timeWindow]
+  );
+
   const comparison = useMemo(
+    () =>
+      compareGasolineVsEthanol(
+        windowedData.intervals,
+        windowedData.entries,
+        activeVehicle ?? undefined
+      ),
+    [windowedData, activeVehicle]
+  );
+
+  const globalComparison = useMemo(
     () =>
       compareGasolineVsEthanol(
         intervals,
@@ -126,14 +147,65 @@ export const App: React.FC = () => {
   );
 
   const monthlySpending = useMemo(
-    () => calculateMonthlySpending(state.entries, activeVehicle?.id),
-    [state.entries, activeVehicle]
+    () => calculateMonthlySpending(windowedData.entries, activeVehicle?.id),
+    [windowedData.entries, activeVehicle]
   );
 
-  const allAlerts = useMemo(
+  const rawAlerts = useMemo(
     () => [...comparison.gasolineStats.alerts, ...comparison.ethanolStats.alerts],
     [comparison]
   );
+
+  const visibleAlerts = useMemo(() => {
+    const dismissed = new Set(state.dismissedAlertIds ?? []);
+    return rawAlerts.filter((a) => !dismissed.has(a.id));
+  }, [rawAlerts, state.dismissedAlertIds]);
+
+  // Ao abrir a aba Análises, exibe os alertas nesta visita e já os marca como vistos
+  // para que desapareçam definitivamente após visualização (sem notificação eterna).
+  useEffect(() => {
+    if (activeTab !== 'analytics') {
+      setSessionAlerts([]);
+      return;
+    }
+    if (visibleAlerts.length === 0) {
+      return;
+    }
+    setSessionAlerts((prev) => {
+      const existing = new Set(prev.map((a) => a.id));
+      const next = [...prev];
+      for (const alert of visibleAlerts) {
+        if (!existing.has(alert.id)) {
+          next.push(alert);
+        }
+      }
+      return next;
+    });
+    setState((prev) => {
+      const current = prev.dismissedAlertIds ?? [];
+      const currentSet = new Set(current);
+      const toAdd = visibleAlerts
+        .map((a) => a.id)
+        .filter((id) => !currentSet.has(id));
+      if (toAdd.length === 0) return prev;
+      return {
+        ...prev,
+        dismissedAlertIds: [...current, ...toAdd],
+      };
+    });
+  }, [activeTab, visibleAlerts]);
+
+  const handleDismissAlert = (alertId: string) => {
+    setSessionAlerts((prev) => prev.filter((a) => a.id !== alertId));
+    setState((prev) => {
+      const current = prev.dismissedAlertIds ?? [];
+      if (current.includes(alertId)) return prev;
+      return {
+        ...prev,
+        dismissedAlertIds: [...current, alertId],
+      };
+    });
+  };
 
   const latestMonth = monthlySpending[monthlySpending.length - 1];
 
@@ -191,9 +263,13 @@ export const App: React.FC = () => {
       <div className="app-shell">
         <header className="topbar">
           <div className="brand-block">
-            <span className="brand-mark">
-              <FuelPumpIcon size={18} />
-            </span>
+            <img
+              src="/logo.png"
+              alt="FuelTracker"
+              width={36}
+              height={36}
+              className="app-logo-img"
+            />
             <div>
               <h1>FuelTracker</h1>
               <span className="topbar-sub tabular">
@@ -309,7 +385,9 @@ export const App: React.FC = () => {
                   <section className="hero-card">
                     <div className="hero-top">
                       <div>
-                        <span className="hero-eyebrow">Resumo de Rendimento</span>
+                        <span className="hero-eyebrow">
+                          Resumo ({TIME_WINDOW_LABELS[timeWindow]})
+                        </span>
                         <h2 className="hero-title">{activeVehicle.nickname}</h2>
                       </div>
                       <button
@@ -356,7 +434,7 @@ export const App: React.FC = () => {
                     </div>
                   </section>
 
-                  {allAlerts.length > 0 && (
+                  {visibleAlerts.length > 0 && (
                     <button
                       type="button"
                       className="alert-teaser"
@@ -365,8 +443,8 @@ export const App: React.FC = () => {
                       <span className="inline-icon-row">
                         <AlertIcon size={17} />
                         <span>
-                          <strong>{allAlerts.length} alerta(s) estatístico(s):</strong>{' '}
-                          {allAlerts[0].title}
+                          <strong>{visibleAlerts.length} alerta(s) estatístico(s):</strong>{' '}
+                          {visibleAlerts[0].title}
                         </span>
                       </span>
                       <ChevronRightIcon size={16} />
@@ -388,9 +466,14 @@ export const App: React.FC = () => {
           {activeTab === 'analytics' && (
             <AnalyticsDashboard
               vehicle={activeVehicle}
-              intervals={intervals}
+              intervals={windowedData.intervals}
               comparison={comparison}
+              globalComparison={globalComparison}
               monthlySpending={monthlySpending}
+              timeWindow={timeWindow}
+              onChangeTimeWindow={setTimeWindow}
+              alerts={sessionAlerts}
+              onDismissAlert={handleDismissAlert}
             />
           )}
 
@@ -434,9 +517,9 @@ export const App: React.FC = () => {
           >
             <span className="nav-icon-wrap">
               <ChartIcon size={19} />
-              {allAlerts.length > 0 && (
-                <em className="alert-dot" aria-label={`${allAlerts.length} alertas`}>
-                  {allAlerts.length}
+              {activeTab !== 'analytics' && visibleAlerts.length > 0 && (
+                <em className="alert-dot" aria-label={`${visibleAlerts.length} alertas`}>
+                  {visibleAlerts.length}
                 </em>
               )}
             </span>

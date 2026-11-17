@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import {
+  ConsumptionAlert,
   ConsumptionInterval,
   FUEL_LABELS,
   FuelComparisonResult,
@@ -8,13 +9,19 @@ import {
   MonthlySpendBucket,
   Vehicle,
 } from '../types';
-import { AlertIcon, ChartIcon } from './Icons';
+import { AlertIcon, ChartIcon, CloseIcon } from './Icons';
+import { TimeWindow, TIME_WINDOW_LABELS } from '../services/statisticalEngine';
 
 interface AnalyticsDashboardProps {
   vehicle: Vehicle | null;
   intervals: ConsumptionInterval[];
   comparison: FuelComparisonResult;
+  globalComparison: FuelComparisonResult;
   monthlySpending: MonthlySpendBucket[];
+  timeWindow: TimeWindow;
+  onChangeTimeWindow: (window: TimeWindow) => void;
+  alerts: ConsumptionAlert[];
+  onDismissAlert: (alertId: string) => void;
 }
 
 function getRatingBadgeClass(rating: FuelStatsSummary['latestRating']): string {
@@ -261,7 +268,12 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
   vehicle,
   intervals,
   comparison,
+  globalComparison,
   monthlySpending,
+  timeWindow,
+  onChangeTimeWindow,
+  alerts,
+  onDismissAlert,
 }) => {
   const [selectedFuel, setSelectedFuel] = useState<FuelType>('GASOLINE');
 
@@ -269,6 +281,10 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
     selectedFuel === 'GASOLINE'
       ? comparison.gasolineStats
       : comparison.ethanolStats;
+  const globalActiveStats =
+    selectedFuel === 'GASOLINE'
+      ? globalComparison.gasolineStats
+      : globalComparison.ethanolStats;
 
   const activeIntervals = useMemo(
     () =>
@@ -279,11 +295,6 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
           item.fuelType === selectedFuel
       ),
     [intervals, selectedFuel]
-  );
-
-  const allAlerts = useMemo(
-    () => [...comparison.gasolineStats.alerts, ...comparison.ethanolStats.alerts],
-    [comparison]
   );
 
   const latestMonth = monthlySpending[monthlySpending.length - 1];
@@ -300,9 +311,26 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
 
   return (
     <div className="stack-gap">
-      {allAlerts.length > 0 && (
+      <div className="window-bar" role="group" aria-label="Período de análise">
+        {(['6M', '1Y', 'ALL'] as TimeWindow[]).map((w) => (
+          <button
+            key={w}
+            type="button"
+            className={`window-pill ${timeWindow === w ? 'active' : ''}`}
+            onClick={() => onChangeTimeWindow(w)}
+          >
+            {w === '6M'
+              ? 'Últimos 6 meses'
+              : w === '1Y'
+              ? 'Último ano'
+              : 'Global (Tudo)'}
+          </button>
+        ))}
+      </div>
+
+      {alerts.length > 0 && (
         <section className="alert-stack" aria-label="Mini-alertas estatísticos">
-          {allAlerts.map((alert) => (
+          {alerts.map((alert) => (
             <div
               key={alert.id}
               className={`mini-alert ${
@@ -314,10 +342,21 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
                   <AlertIcon size={16} />
                   <span>{alert.title}</span>
                 </span>
-                <span className="pill-stat tabular">
-                  +{alert.percentIncreaseInConsumption.toFixed(1)}% gasto · p=
-                  {alert.pValue.toFixed(4)}
-                </span>
+                <div className="inline-icon-row">
+                  <span className="pill-stat tabular">
+                    +{alert.percentIncreaseInConsumption.toFixed(1)}% gasto · p=
+                    {alert.pValue.toFixed(4)}
+                  </span>
+                  <button
+                    type="button"
+                    className="alert-dismiss-btn"
+                    onClick={() => onDismissAlert(alert.id)}
+                    aria-label="Dispensar alerta"
+                    title="Dispensar alerta"
+                  >
+                    <CloseIcon size={14} />
+                  </button>
+                </div>
               </div>
               <p>{alert.message}</p>
             </div>
@@ -330,7 +369,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
           <div>
             <h2>Avaliação Estatística</h2>
             <span className="subtitle">
-              Gasolina e Álcool analisados em séries puras separadas
+              Janela: {TIME_WINDOW_LABELS[timeWindow]} · Séries puras separadas
             </span>
           </div>
           <div className="segmented-control compact">
@@ -353,14 +392,18 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
 
         <div className="kpi-grid">
           <div className="kpi-box">
-            <span className="kpi-label">Média Ponderada</span>
+            <span className="kpi-label">
+              Média ({TIME_WINDOW_LABELS[timeWindow]})
+            </span>
             <strong className="kpi-value tabular">
               {activeStats.weightedKmPerLiter > 0
                 ? `${activeStats.weightedKmPerLiter.toFixed(2)} km/L`
                 : '—'}
             </strong>
             <span className="muted-sm tabular">
-              {activeStats.totalDistanceKm.toFixed(0)} km analisados
+              {timeWindow !== 'ALL' && globalActiveStats.weightedKmPerLiter > 0
+                ? `Global: ${globalActiveStats.weightedKmPerLiter.toFixed(2)} km/L`
+                : `${activeStats.totalDistanceKm.toFixed(0)} km analisados`}
             </span>
           </div>
 

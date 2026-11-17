@@ -13,7 +13,26 @@ export const EMPTY_APP_STATE: AppState = {
   selectedVehicleId: null,
   entries: [],
   palette: 'terracotta',
+  dismissedAlertIds: [],
 };
+
+function migrateVehicles(vehicles: Vehicle[]): Vehicle[] {
+  return vehicles.map((v) => {
+    const label = `${v.model} ${v.nickname}`.toLowerCase();
+    const isPalioElx =
+      v.specId === 'fiat-palio-10-elx-fire' ||
+      (label.includes('palio') && label.includes('elx'));
+    if (isPalioElx && v.gaugeSegments === 8) {
+      return {
+        ...v,
+        specId:
+          v.specId === 'fiat-palio-10-elx-fire' ? 'fiat-palio-10-elx' : v.specId,
+        gaugeSegments: 16,
+      };
+    }
+    return v;
+  });
+}
 
 /**
  * Carrega o estado local imediatamente a partir do localStorage.
@@ -28,7 +47,8 @@ export function loadAppState(): AppState {
       return EMPTY_APP_STATE;
     }
     const parsed = JSON.parse(raw) as Partial<AppState>;
-    const vehicles = Array.isArray(parsed.vehicles) ? parsed.vehicles : [];
+    const rawVehicles = Array.isArray(parsed.vehicles) ? parsed.vehicles : [];
+    const vehicles = migrateVehicles(rawVehicles);
     const entries = Array.isArray(parsed.entries) ? parsed.entries : [];
     const selectedVehicleId =
       typeof parsed.selectedVehicleId === 'string' &&
@@ -51,6 +71,9 @@ export function loadAppState(): AppState {
       palette: VALID_PALETTES.includes(parsed.palette as ColorPaletteId)
         ? (parsed.palette as ColorPaletteId)
         : 'terracotta',
+      dismissedAlertIds: Array.isArray(parsed.dismissedAlertIds)
+        ? parsed.dismissedAlertIds.filter((id): id is string => typeof id === 'string')
+        : [],
     };
   } catch {
     return EMPTY_APP_STATE;
