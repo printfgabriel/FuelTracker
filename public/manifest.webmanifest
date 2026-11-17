@@ -1,0 +1,18 @@
+{
+  "name": "FuelTracker",
+  "short_name": "FuelTracker",
+  "description": "Tracking rápido de combustível com cálculo por palitinhos, validação cruzada e estatística avançada.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F4F1DE",
+  "theme_color": "#3D405B",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
